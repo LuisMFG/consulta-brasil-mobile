@@ -1,0 +1,37 @@
+# Flutter & Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.idea/
+.vscode/
+pubspec.lock
+*.iml
+
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/.settings/
+*.keystore
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/.symlinks/
+ios/Runner.xcworkspace/
+ios/build/
+
+# Web
+build/web/
+
+# VS Code
+.vscode/
+
+# Mac & Linux & Windows system files
+.DS_Store
+*.swp
+*.lock
+*.log

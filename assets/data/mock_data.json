@@ -1,0 +1,66 @@
+{
+  "news": [
+    {
+      "id": "1",
+      "title": "Brasil conclui 200 obras de infraestrutura em 2024",
+      "description": "Programa de aceleração do crescimento finaliza grandes projetos de infraestrutura em todo o país, incluindo rodovias, pontes e aeroportos.",
+      "imageUrl": "https://images.pexels.com/photos/1106468/pexels-photo-1106468.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "15 Jan 2025",
+      "category": "Infraestrutura"
+    },
+    {
+      "id": "2",
+      "title": "Investimento recorde em saúde pública",
+      "description": "Governo federal destina R$ 125 bilhões para o Sistema Único de Saúde em 2024, maior investimento da história.",
+      "imageUrl": "https://images.pexels.com/photos/263402/pexels-photo-263402.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "12 Jan 2025",
+      "category": "Saúde"
+    },
+    {
+      "id": "3",
+      "title": "Programa de educação alcança 2 milhões de estudantes",
+      "description": "Iniciativa federal de melhoria da educação básica beneficia estudantes em todo o território nacional.",
+      "imageUrl": "https://images.pexels.com/photos/1181534/pexels-photo-1181534.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "10 Jan 2025",
+      "category": "Educação"
+    },
+    {
+      "id": "4",
+      "title": "Transparência dos gastos públicos aumenta 40%",
+      "description": "Portal da Transparência registra crescimento no acesso a dados governamentais por parte dos cidadãos.",
+      "imageUrl": "https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "8 Jan 2025",
+      "category": "Transparência"
+    }
+  ],
+  "spending_2023": {
+    "sectors": [
+      {"name": "Saúde", "value": 125000000000, "color": "#dc3545"},
+      {"name": "Educação", "value": 110000000000, "color": "#007bff"},
+      {"name": "Previdência", "value": 600000000000, "color": "#28a745"},
+      {"name": "Defesa", "value": 95000000000, "color": "#fd7e14"},
+      {"name": "Infraestrutura", "value": 15000000000, "color": "#6f42c1"},
+      {"name": "Segurança", "value": 14000000000, "color": "#20c997"}
+    ]
+  },
+  "spending_2024": {
+    "sectors": [
+      {"name": "Saúde", "value": 135000000000, "color": "#dc3545"},
+      {"name": "Educação", "value": 118000000000, "color": "#007bff"},
+      {"name": "Previdência", "value": 650000000000, "color": "#28a745"},
+      {"name": "Defesa", "value": 102000000000, "color": "#fd7e14"},
+      {"name": "Infraestrutura", "value": 18000000000, "color": "#6f42c1"},
+      {"name": "Segurança", "value": 16000000000, "color": "#20c997"}
+    ]
+  },
+  "spending_2025": {
+    "sectors": [
+      {"name": "Saúde", "value": 145000000000, "color": "#dc3545"},
+      {"name": "Educação", "value": 125000000000, "color": "#007bff"},
+      {"name": "Previdência", "value": 700000000000, "color": "#28a745"},
+      {"name": "Defesa", "value": 108000000000, "color": "#fd7e14"},
+      {"name": "Infraestrutura", "value": 22000000000, "color": "#6f42c1"},
+      {"name": "Segurança", "value": 18000000000, "color": "#20c997"}
+    ]
+  }
+}
