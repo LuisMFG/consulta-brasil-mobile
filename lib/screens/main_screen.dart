@@ -3,6 +3,9 @@ import 'home_screen.dart';
 import 'gastos_screen.dart';
 import 'avaliacao_screen.dart';
 import 'configuracoes_screen.dart';
+import 'security_screen.dart';
+
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,6 +20,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const GastosScreen(),
+    const SecurityScreen(),
     const AvaliacaoScreen(),
     const ConfiguracoesScreen(),
   ];
@@ -36,12 +40,17 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Início',
+            label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart),
-            label: 'Gastos Públicos',
+            label: 'Gastos',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.security_outlined),
+            selectedIcon: Icon(Icons.security),
+            label: 'Segurança',
           ),
           NavigationDestination(
             icon: Icon(Icons.star_outline),
@@ -51,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Configurações',
+            label: 'Settings',
           ),
         ],
       ),

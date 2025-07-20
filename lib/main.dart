@@ -5,6 +5,7 @@ import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/main_screen.dart';
 
+
 void main() {
   runApp(const ConsultaBrasilApp());
 }

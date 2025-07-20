@@ -29,6 +29,7 @@ build/web/
 
 # VS Code
 .vscode/
+.vs/
 
 # Mac & Linux & Windows system files
 .DS_Store

@@ -2,42 +2,62 @@
   "news": [
     {
       "id": "1",
-      "title": "Brasil conclui 200 obras de infraestrutura em 2024",
-      "description": "Programa de aceleração do crescimento finaliza grandes projetos de infraestrutura em todo o país, incluindo rodovias, pontes e aeroportos.",
-      "imageUrl": "https://images.pexels.com/photos/1106468/pexels-photo-1106468.jpeg?auto=compress&cs=tinysrgb&w=800",
-      "date": "15 Jan 2025",
-      "category": "Infraestrutura"
+      "title": "Portal da Transparência registra aumento na consulta de dados públicos",
+      "description": "Cidadãos brasileiros têm acessado cada vez mais os dados governamentais através do portal oficial.",
+      "imageUrl": "https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "20 Jul 2025",
+      "category": "Transparência"
     },
     {
       "id": "2",
-      "title": "Investimento recorde em saúde pública",
-      "description": "Governo federal destina R$ 125 bilhões para o Sistema Único de Saúde em 2024, maior investimento da história.",
-      "imageUrl": "https://images.pexels.com/photos/263402/pexels-photo-263402.jpeg?auto=compress&cs=tinysrgb&w=800",
-      "date": "12 Jan 2025",
-      "category": "Saúde"
+      "title": "Sistema SICONV facilita gestão de convênios municipais",
+      "description": "Plataforma digital moderniza processos entre União e entes federados para maior eficiência.",
+      "imageUrl": "https://images.pexels.com/photos/1106468/pexels-photo-1106468.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "19 Jul 2025",
+      "category": "Convênios"
     },
     {
       "id": "3",
-      "title": "Programa de educação alcança 2 milhões de estudantes",
-      "description": "Iniciativa federal de melhoria da educação básica beneficia estudantes em todo o território nacional.",
+      "title": "Dados do IBGE revelam crescimento populacional nas capitais",
+      "description": "Levantamento mostra tendências demográficas importantes para planejamento urbano.",
       "imageUrl": "https://images.pexels.com/photos/1181534/pexels-photo-1181534.jpeg?auto=compress&cs=tinysrgb&w=800",
-      "date": "10 Jan 2025",
-      "category": "Educação"
+      "date": "18 Jul 2025",
+      "category": "Estatísticas"
     },
     {
       "id": "4",
-      "title": "Transparência dos gastos públicos aumenta 40%",
-      "description": "Portal da Transparência registra crescimento no acesso a dados governamentais por parte dos cidadãos.",
-      "imageUrl": "https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800",
-      "date": "8 Jan 2025",
-      "category": "Transparência"
+      "title": "Banco Central mantém transparência nos indicadores econômicos",
+      "description": "Dados atualizados de taxas de juros e inflação disponíveis para consulta pública.",
+      "imageUrl": "https://images.pexels.com/photos/259200/pexels-photo-259200.jpeg?auto=compress&cs=tinysrgb&w=800",
+      "date": "17 Jul 2025",
+      "category": "Economia"
     }
   ],
+  "spending_2021": {
+    "sectors": [
+      {"name": "Previdência", "value": 550000000000, "color": "#28a745"},
+      {"name": "Saúde", "value": 115000000000, "color": "#dc3545"},
+      {"name": "Educação", "value": 95000000000, "color": "#007bff"},
+      {"name": "Defesa", "value": 88000000000, "color": "#fd7e14"},
+      {"name": "Infraestrutura", "value": 12000000000, "color": "#6f42c1"},
+      {"name": "Segurança", "value": 11000000000, "color": "#20c997"}
+    ]
+  },
+  "spending_2022": {
+    "sectors": [
+      {"name": "Previdência", "value": 580000000000, "color": "#28a745"},
+      {"name": "Saúde", "value": 120000000000, "color": "#dc3545"},
+      {"name": "Educação", "value": 105000000000, "color": "#007bff"},
+      {"name": "Defesa", "value": 92000000000, "color": "#fd7e14"},
+      {"name": "Infraestrutura", "value": 13500000000, "color": "#6f42c1"},
+      {"name": "Segurança", "value": 12500000000, "color": "#20c997"}
+    ]
+  },
   "spending_2023": {
     "sectors": [
+      {"name": "Previdência", "value": 600000000000, "color": "#28a745"},
       {"name": "Saúde", "value": 125000000000, "color": "#dc3545"},
       {"name": "Educação", "value": 110000000000, "color": "#007bff"},
-      {"name": "Previdência", "value": 600000000000, "color": "#28a745"},
       {"name": "Defesa", "value": 95000000000, "color": "#fd7e14"},
       {"name": "Infraestrutura", "value": 15000000000, "color": "#6f42c1"},
       {"name": "Segurança", "value": 14000000000, "color": "#20c997"}
@@ -45,9 +65,9 @@
   },
   "spending_2024": {
     "sectors": [
+      {"name": "Previdência", "value": 650000000000, "color": "#28a745"},
       {"name": "Saúde", "value": 135000000000, "color": "#dc3545"},
       {"name": "Educação", "value": 118000000000, "color": "#007bff"},
-      {"name": "Previdência", "value": 650000000000, "color": "#28a745"},
       {"name": "Defesa", "value": 102000000000, "color": "#fd7e14"},
       {"name": "Infraestrutura", "value": 18000000000, "color": "#6f42c1"},
       {"name": "Segurança", "value": 16000000000, "color": "#20c997"}
@@ -55,9 +75,9 @@
   },
   "spending_2025": {
     "sectors": [
+      {"name": "Previdência", "value": 700000000000, "color": "#28a745"},
       {"name": "Saúde", "value": 145000000000, "color": "#dc3545"},
       {"name": "Educação", "value": 125000000000, "color": "#007bff"},
-      {"name": "Previdência", "value": 700000000000, "color": "#28a745"},
       {"name": "Defesa", "value": 108000000000, "color": "#fd7e14"},
       {"name": "Infraestrutura", "value": 22000000000, "color": "#6f42c1"},
       {"name": "Segurança", "value": 18000000000, "color": "#20c997"}

@@ -1,262 +1,177 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../models/news_model.dart';
 import '../models/spending_model.dart';
 import 'package:flutter/material.dart';
-
+import 'government_apis.dart';
 
 class ApiService {
-  // URLs das APIs oficiais do governo brasileiro
-  static const String _transparenciaUrl = 'https://api.portaldatransparencia.gov.br/api-de-dados';
-  static const String _siconvUrl = 'https://api.convenios.gov.br/siconv/v1';
-  static const String _tesouroDiretoUrl = 'https://www.tesourotransparente.gov.br/ckan/api/3/action';
-  static const String _ibgeUrl = 'https://servicodados.ibge.gov.br/api/v1';
-  static const String _dataSusUrl = 'https://apidadosabertos.saude.gov.br';
-  
-  // Chave de API do Portal da Transparência (necessária para algumas consultas)
-  static const String _apiKey = 'chave-api-dados'; // Substitua pela chave real
-  
+  static bool _useRealApis = true;
+
+  static void setUseRealApis(bool useReal) {
+    _useRealApis = useReal;
+  }
+
+  static void setApiKey(String key) {
+    GovernmentApisService.setApiKey(key);
+  }
+
   static Future<List<NewsModel>> getNews() async {
     try {
-      // Buscar dados de diferentes fontes para gerar notícias
-      final List<NewsModel> news = [];
-      
-      // 1. Buscar dados de gastos recentes para gerar notícias
-      final gastosData = await _getGastosDirectos();
-      if (gastosData.isNotEmpty) {
-        final totalGastos = gastosData.fold(0.0, (sum, item) => sum + (item['valor'] ?? 0.0));
-        news.add(NewsModel(
-          id: '1',
-          title: 'Gastos públicos federais somam R\$ ${_formatCurrency(totalGastos)} em 2024',
-          description: 'Portal da Transparência registra movimentação financeira do governo federal com foco em transparência e prestação de contas.',
-          imageUrl: 'https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800',
-          date: _formatDate(DateTime.now()),
-          category: 'Transparência',
-        ));
+      if (_useRealApis) {
+        return await _getRealNews();
+      } else {
+        return await _getFallbackNews();
       }
-      
-      // 2. Buscar dados de convênios do SICONV
-      final conveniosData = await _getConvenios();
-      if (conveniosData.isNotEmpty) {
-        news.add(NewsModel(
-          id: '2',
-          title: '${conveniosData.length} convênios ativos registrados no SICONV',
-          description: 'Sistema de Gestão de Convênios e Contratos de Repasse mantém registro atualizado de parcerias entre União e entes federados.',
-          imageUrl: 'https://images.pexels.com/photos/1106468/pexels-photo-1106468.jpeg?auto=compress&cs=tinysrgb&w=800',
-          date: _formatDate(DateTime.now().subtract(const Duration(days: 1))),
-          category: 'Convênios',
-        ));
-      }
-      
-      // 3. Buscar dados de estabelecimentos de saúde
-      final saudeData = await _getEstabelecimentosSaude();
-      if (saudeData.isNotEmpty) {
-        news.add(NewsModel(
-          id: '3',
-          title: 'Rede de saúde pública conta com ${saudeData.length} estabelecimentos',
-          description: 'Cadastro Nacional de Estabelecimentos de Saúde (CNES) mantém registro atualizado da infraestrutura do SUS.',
-          imageUrl: 'https://images.pexels.com/photos/263402/pexels-photo-263402.jpeg?auto=compress&cs=tinysrgb&w=800',
-          date: _formatDate(DateTime.now().subtract(const Duration(days: 2))),
-          category: 'Saúde',
-        ));
-      }
-      
-      // 4. Buscar dados do IBGE
-      final ibgeData = await _getDadosIBGE();
-      if (ibgeData.isNotEmpty) {
-        news.add(NewsModel(
-          id: '4',
-          title: 'IBGE disponibiliza dados atualizados de ${ibgeData.length} municípios',
-          description: 'Instituto Brasileiro de Geografia e Estatística mantém base de dados geográficos e estatísticos do país.',
-          imageUrl: 'https://images.pexels.com/photos/1181534/pexels-photo-1181534.jpeg?auto=compress&cs=tinysrgb&w=800',
-          date: _formatDate(DateTime.now().subtract(const Duration(days: 3))),
-          category: 'Estatísticas',
-        ));
-      }
-      
-      return news;
     } catch (e) {
       print('Erro ao carregar notícias: $e');
-      return _getFallbackNews();
+      return await _getFallbackNews();
     }
   }
 
   static Future<SpendingModel> getSpendingData(String year) async {
     try {
-      // Buscar dados reais de gastos por órgão
-      final gastosData = await _getGastosPorOrgao(year);
-      
-      if (gastosData.isEmpty) {
-        throw Exception('Nenhum dado encontrado para o ano $year');
+      if (_useRealApis) {
+        try {
+          return await GovernmentApisService.getRealSpendingData(year);
+        } catch (e) {
+          print('APIs reais indisponíveis para $year: $e');
+        }
       }
-      
-      // Agrupar gastos por setor
-      final Map<String, double> setoresMap = {};
-      final Map<String, String> coresMap = {
-        'Saúde': '#dc3545',
-        'Educação': '#007bff',
-        'Previdência': '#28a745',
-        'Defesa': '#fd7e14',
-        'Infraestrutura': '#6f42c1',
-        'Segurança': '#20c997',
-        'Outros': '#6c757d',
-      };
-      
-      for (final gasto in gastosData) {
-        final orgao = gasto['nomeOrgao'] ?? 'Outros';
-        final valor = (gasto['valor'] ?? 0.0).toDouble();
-        
-        // Mapear órgãos para setores
-        String setor = _mapOrgaoToSetor(orgao);
-        setoresMap[setor] = (setoresMap[setor] ?? 0) + valor;
-      }
-      
-      // Converter para lista de SectorSpending
-      final sectors = setoresMap.entries.map((entry) {
-        return SectorSpending(
-          name: entry.key,
-          value: entry.value,
-          color: Color(int.parse(coresMap[entry.key]!.substring(1), radix: 16) + 0xFF000000),
-        );
-      }).toList();
-      
-      // Ordenar por valor (maior para menor)
-      sectors.sort((a, b) => b.value.compareTo(a.value));
-      
-      return SpendingModel(sectors: sectors);
+
+      return await _getFallbackSpendingData(year);
     } catch (e) {
-      print('Erro ao carregar dados de gastos: $e');
-      return _getFallbackSpendingData();
+      print('Erro geral ao buscar dados para $year: $e');
+      return await _getFallbackSpendingData(year);
     }
   }
 
-  // Métodos privados para chamadas às APIs reais
+  static Future<List<NewsModel>> _getRealNews() async {
+    final List<NewsModel> news = [];
 
-  static Future<List<dynamic>> _getGastosDirectos() async {
     try {
-      final now = DateTime.now();
-      final mesAtual = now.month.toString().padLeft(2, '0');
-      final anoAtual = now.year.toString();
-      
-      final url = '$_transparenciaUrl/gastos-diretos?mesAno=${anoAtual}${mesAtual}&pagina=1';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'chave-api-dados': _apiKey,
-          'Accept': 'application/json',
-        },
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data is List ? data : [];
+      final apiStatus = await GovernmentApisService.checkApiStatus();
+      final onlineApis = apiStatus.entries.where((e) => e.value).length;
+
+      news.add(NewsModel(
+        id: '1',
+        title: '$onlineApis APIs governamentais ativas monitoradas em tempo real',
+        description: 'Sistema monitora continuamente APIs do Portal da Transparência, IBGE, SICONV e Banco Central.',
+        imageUrl: 'https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800',
+        date: _formatDate(DateTime.now()),
+        category: 'Transparência',
+      ));
+
+      final estados = await GovernmentApisService.getEstadosIBGE();
+      if (estados.isNotEmpty) {
+        news.add(NewsModel(
+          id: '2',
+          title: 'IBGE disponibiliza dados atualizados de ${estados.length} estados',
+          description: 'Base de dados de localidades do IBGE mantém informações geográficas atualizadas do Brasil.',
+          imageUrl: 'https://images.pexels.com/photos/1181534/pexels-photo-1181534.jpeg?auto=compress&cs=tinysrgb&w=800',
+          date: _formatDate(DateTime.now().subtract(const Duration(days: 1))),
+          category: 'Estatísticas',
+        ));
       }
-      return [];
+
+      final convenios = await GovernmentApisService.getConveniosSICONV(limit: 10);
+      if (convenios.isNotEmpty) {
+        final valorTotal = convenios.fold(0.0, (sum, conv) => sum + (conv['valor'] as double));
+        news.add(NewsModel(
+          id: '3',
+          title: '${convenios.length} convênios ativos no SICONV',
+          description: 'Sistema registra R\$ ${_formatCurrency(valorTotal)} em convênios federais.',
+          imageUrl: 'https://images.pexels.com/photos/1106468/pexels-photo-1106468.jpeg?auto=compress&cs=tinysrgb&w=800',
+          date: _formatDate(DateTime.now().subtract(const Duration(days: 2))),
+          category: 'Convênios',
+        ));
+      }
+
+      final selic = await GovernmentApisService.getTaxasJuros();
+      if (selic.isNotEmpty && selic.containsKey('taxas')) {
+        final taxas = selic['taxas'] as List;
+        if (taxas.isNotEmpty) {
+          news.add(NewsModel(
+            id: '4',
+            title: 'Taxa Selic atual: ${taxas[0]['valor']}% ao ano',
+            description: 'Banco Central mantém dados econômicos atualizados para transparência.',
+            imageUrl: 'https://images.pexels.com/photos/259200/pexels-photo-259200.jpeg?auto=compress&cs=tinysrgb&w=800',
+            date: _formatDate(DateTime.now().subtract(const Duration(days: 3))),
+            category: 'Economia',
+          ));
+        }
+      }
+
+      return news.isNotEmpty ? news : await _getFallbackNews();
     } catch (e) {
-      print('Erro ao buscar gastos diretos: $e');
-      return [];
+      print('Erro ao buscar notícias reais: $e');
+      return await _getFallbackNews();
     }
   }
 
-  static Future<List<dynamic>> _getGastosPorOrgao(String year) async {
+  static Future<SpendingModel?> _loadMockSpendingData(String year) async {
     try {
-      final url = '$_transparenciaUrl/gastos-diretos?ano=$year&pagina=1';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'chave-api-dados': _apiKey,
-          'Accept': 'application/json',
-        },
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data is List ? data : [];
+      final String jsonString = await rootBundle.loadString('assets/data/mock_data.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      String key = 'spending_$year';
+      if (year == 'Todos') {
+        key = 'spending_2024';
       }
-      return [];
+
+      if (jsonData.containsKey(key)) {
+        return SpendingModel.fromJson(jsonData[key]);
+      }
+
+      if (year == 'Todos') {
+        final years = ['2021', '2022', '2023', '2024', '2025'];
+        final Map<String, double> totalSetores = {};
+
+        for (final y in years) {
+          final yearKey = 'spending_$y';
+          if (jsonData.containsKey(yearKey)) {
+            final yearData = SpendingModel.fromJson(jsonData[yearKey]);
+            for (final sector in yearData.sectors) {
+              totalSetores[sector.name] = (totalSetores[sector.name] ?? 0) + sector.value;
+            }
+          }
+        }
+
+        final sectors = totalSetores.entries.map((entry) {
+          return SectorSpending(
+            name: entry.key,
+            value: entry.value,
+            color: _getSectorColor(entry.key),
+          );
+        }).toList();
+
+        sectors.sort((a, b) => b.value.compareTo(a.value));
+        return SpendingModel(sectors: sectors);
+      }
+
+      return null;
     } catch (e) {
-      print('Erro ao buscar gastos por órgão: $e');
-      return [];
+      print('Erro ao carregar dados mock: $e');
+      return null;
     }
   }
 
-  static Future<List<dynamic>> _getConvenios() async {
-    try {
-      final url = '$_siconvUrl/consulta/convenios?offset=0&limit=100';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['convenios'] ?? [];
-      }
-      return [];
-    } catch (e) {
-      print('Erro ao buscar convênios: $e');
-      return [];
-    }
-  }
+  static Color _getSectorColor(String sectorName) {
+    final Map<String, String> coresMap = {
+      'Previdência': '#28a745',
+      'Saúde': '#dc3545',
+      'Educação': '#007bff',
+      'Defesa': '#fd7e14',
+      'Infraestrutura': '#6f42c1',
+      'Segurança': '#20c997',
+      'Outros': '#6c757d',
+    };
 
-  static Future<List<dynamic>> _getEstabelecimentosSaude() async {
-    try {
-      final url = '$_dataSusUrl/cnes/estabelecimentos?limit=100';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['estabelecimentos'] ?? [];
-      }
-      return [];
-    } catch (e) {
-      print('Erro ao buscar estabelecimentos de saúde: $e');
-      return [];
-    }
-  }
-
-  static Future<List<dynamic>> _getDadosIBGE() async {
-    try {
-      final url = '$_ibgeUrl/localidades/municipios';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data is List ? data.take(100).toList() : [];
-      }
-      return [];
-    } catch (e) {
-      print('Erro ao buscar dados do IBGE: $e');
-      return [];
-    }
-  }
-
-  // Métodos auxiliares
-
-  static String _mapOrgaoToSetor(String orgao) {
-    final orgaoLower = orgao.toLowerCase();
-    
-    if (orgaoLower.contains('saúde') || orgaoLower.contains('sus')) {
-      return 'Saúde';
-    } else if (orgaoLower.contains('educação') || orgaoLower.contains('mec')) {
-      return 'Educação';
-    } else if (orgaoLower.contains('previdência') || orgaoLower.contains('inss')) {
-      return 'Previdência';
-    } else if (orgaoLower.contains('defesa') || orgaoLower.contains('militar')) {
-      return 'Defesa';
-    } else if (orgaoLower.contains('infraestrutura') || orgaoLower.contains('transporte')) {
-      return 'Infraestrutura';
-    } else if (orgaoLower.contains('segurança') || orgaoLower.contains('polícia')) {
-      return 'Segurança';
-    } else {
-      return 'Outros';
-    }
+    final colorHex = coresMap[sectorName] ?? '#6c757d';
+    return Color(int.parse(colorHex.substring(1), radix: 16) + 0xFF000000);
   }
 
   static String _formatCurrency(double value) {
@@ -267,7 +182,7 @@ class ApiService {
     } else if (value >= 1000) {
       return '${(value / 1000).toStringAsFixed(1)} mil';
     } else {
-      return value.toStringAsFixed(2);
+      return 'R\$ ${value.toStringAsFixed(2)}';
     }
   }
 
@@ -279,29 +194,58 @@ class ApiService {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  // Dados de fallback em caso de erro nas APIs
-  static List<NewsModel> _getFallbackNews() {
-    return [
-      NewsModel(
-        id: '1',
-        title: 'Portal da Transparência disponível para consulta',
-        description: 'Acesse dados públicos do governo federal de forma transparente e organizada.',
-        imageUrl: 'https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800',
-        date: _formatDate(DateTime.now()),
-        category: 'Transparência',
-      ),
-    ];
+  static Future<List<NewsModel>> _getFallbackNews() async {
+    try {
+      final String jsonString = await rootBundle.loadString('assets/data/mock_data.json');
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+      final List<dynamic> newsData = jsonData['news'] ?? [];
+
+      return newsData.map((item) => NewsModel.fromJson(item)).toList();
+    } catch (e) {
+      return [
+        NewsModel(
+          id: '1',
+          title: 'Sistema funcionando em modo offline',
+          description: 'Dados governamentais temporariamente indisponíveis. Exibindo informações de demonstração.',
+          imageUrl: 'https://images.pexels.com/photos/590016/pexels-photo-590016.jpeg?auto=compress&cs=tinysrgb&w=800',
+          date: _formatDate(DateTime.now()),
+          category: 'Sistema',
+        ),
+      ];
+    }
   }
 
-  static SpendingModel _getFallbackSpendingData() {
+  static Future<SpendingModel> _getFallbackSpendingData(String year) async {
+    try {
+      final mockData = await _loadMockSpendingData(year);
+      if (mockData != null) {
+        return mockData;
+      }
+    } catch (e) {
+      print('Erro ao carregar dados de fallback: $e');
+    }
+
     return SpendingModel(
       sectors: [
         SectorSpending(
-          name: 'Dados Indisponíveis',
-          value: 0,
+          name: 'APIs Indisponíveis',
+          value: 0.0,
           color: const Color(0xFF6c757d),
         ),
       ],
     );
+  }
+
+  static Future<Map<String, bool>> checkApiStatus() async {
+    try {
+      return await GovernmentApisService.checkApiStatus();
+    } catch (e) {
+      return {
+        'Portal da Transparência': false,
+        'IBGE': false,
+        'SICONV': false,
+        'Banco Central': false,
+      };
+    }
   }
 }

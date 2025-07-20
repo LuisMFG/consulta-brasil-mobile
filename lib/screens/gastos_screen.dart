@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../services/api_service.dart';
+import '../services/government_apis.dart';
 import '../models/spending_model.dart';
 import '../widgets/filter_chip_widget.dart';
 
@@ -16,8 +17,11 @@ class _GastosScreenState extends State<GastosScreen> {
   String _chartType = 'pie';
   SpendingModel? _spendingData;
   bool _isLoading = true;
+  String? _errorMessage;
+  bool _usingRealData = false;
+  String? _apiKey;
 
-  final List<String> _years = ['2023', '2024', '2025', 'Todos'];
+  final List<String> _years = ['2021', '2022', '2023', '2024', '2025', 'Todos'];
 
   @override
   void initState() {
@@ -28,10 +32,29 @@ class _GastosScreenState extends State<GastosScreen> {
   Future<void> _loadSpendingData() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
+      _usingRealData = false;
     });
 
     try {
-      final data = await ApiService.getSpendingData(_selectedYear);
+      SpendingModel data;
+
+      if (_apiKey != null && _apiKey!.isNotEmpty) {
+        try {
+          GovernmentApisService.setApiKey(_apiKey!);
+          data = await GovernmentApisService.getRealSpendingData(_selectedYear);
+          _usingRealData = true;
+        } catch (e) {
+          print('Falha ao usar dados reais: $e');
+          data = await ApiService.getSpendingData(_selectedYear);
+          _usingRealData = false;
+          _errorMessage = 'API indisponível';
+        }
+      } else {
+        data = await ApiService.getSpendingData(_selectedYear);
+        _usingRealData = false;
+      }
+
       setState(() {
         _spendingData = data;
         _isLoading = false;
@@ -39,8 +62,58 @@ class _GastosScreenState extends State<GastosScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _errorMessage = e.toString();
+        _usingRealData = false;
+      });
+
+      final fallbackData = await ApiService.getSpendingData(_selectedYear);
+      setState(() {
+        _spendingData = fallbackData;
       });
     }
+  }
+
+  void _showApiKeyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chave API Portal da Transparência'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Para usar dados reais, você precisa de uma chave API:'),
+            const SizedBox(height: 8),
+            const Text('1. Acesse: portaldatransparencia.gov.br'),
+            const Text('2. Vá em "API de dados" > "Cadastrar email"'),
+            const Text('3. Faça login com Gov.br'),
+            const Text('4. Cole a chave recebida por email:'),
+            const SizedBox(height: 16),
+            TextField(
+              onChanged: (value) => _apiKey = value,
+              decoration: const InputDecoration(
+                hintText: 'Cole sua chave API aqui',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _loadSpendingData();
+            },
+            child: const Text('Usar Dados Reais'),
+          ),
+        ],
+      ),
+    );
   }
 
   double get _totalSpending {
@@ -57,13 +130,19 @@ class _GastosScreenState extends State<GastosScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
+        actions: [
+          IconButton(
+            icon: Icon(_usingRealData ? Icons.cloud_done : Icons.cloud_off),
+            onPressed: _showApiKeyDialog,
+            tooltip: _usingRealData ? 'Usando dados reais' : 'Configurar API real',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Filtros
             Row(
               children: [
                 Icon(
@@ -80,7 +159,7 @@ class _GastosScreenState extends State<GastosScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -106,149 +185,146 @@ class _GastosScreenState extends State<GastosScreen> {
 
             const SizedBox(height: 24),
 
-            // Card de resumo
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.trending_up,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 24,
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _usingRealData ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _usingRealData ? Colors.green.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(_usingRealData ? Icons.check_circle : Icons.warning,
+                        color: _usingRealData ? Colors.green : Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _usingRealData
+                            ? 'Exibindo dados REAIS do Portal da Transparência'
+                            : 'Usando dados de demonstração. Toque no ícone ☁ para configurar API real.',
+                        style: TextStyle(color: _usingRealData ? Colors.green[800] : Colors.orange[800]),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Total Gasto em $_selectedYear',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else if (_usingRealData) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Dados REAIS do Portal da Transparência - Ano $_selectedYear',
+                        style: TextStyle(
+                          color: Colors.green[800],
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'R\$ ${(_totalSpending / 1000000000).toStringAsFixed(1)}B',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
 
-            const SizedBox(height: 24),
-
-            // Seletor de tipo de gráfico
-            Row(
-              children: [
-                Icon(
-                  Icons.pie_chart,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Tipo de Gráfico',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _chartType = 'pie';
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _chartType == 'pie'
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surface,
-                      foregroundColor: _chartType == 'pie'
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                    child: const Text('Pizza'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _chartType = 'bar';
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _chartType == 'bar'
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surface,
-                      foregroundColor: _chartType == 'bar'
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                    child: const Text('Barras'),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Gráfico
             if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(),
+              Center(
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Carregando dados de $_selectedYear...',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
               )
-            else if (_spendingData != null)
+            else if (_spendingData != null) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      Theme.of(context).colorScheme.surface,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
                       blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total Gasto em $_selectedYear',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _chartType = 'pie';
+                                });
+                              },
+                              icon: Icon(
+                                Icons.pie_chart,
+                                color: _chartType == 'pie'
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _chartType = 'bar';
+                                });
+                              },
+                              icon: Icon(
+                                Icons.bar_chart,
+                                color: _chartType == 'bar'
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
-                      'Gastos por Setor - $_selectedYear',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      'R\$ ${(_totalSpending / 1000000000).toStringAsFixed(1)} bilhões',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     SizedBox(
-                      height: 250,
+                      height: 300,
                       child: _chartType == 'pie'
                           ? _buildPieChart()
                           : _buildBarChart(),
@@ -257,10 +333,8 @@ class _GastosScreenState extends State<GastosScreen> {
                 ),
               ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Lista de setores
-            if (_spendingData != null) ...[
               Text(
                 'Detalhamento por Setor',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -268,7 +342,7 @@ class _GastosScreenState extends State<GastosScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -281,8 +355,10 @@ class _GastosScreenState extends State<GastosScreen> {
                 itemCount: _spendingData!.sectors.length,
                 itemBuilder: (context, index) {
                   final sector = _spendingData!.sectors[index];
-                  final percentage = (sector.value / _totalSpending) * 100;
-                  
+                  final percentage = _totalSpending > 0
+                      ? (sector.value / _totalSpending) * 100
+                      : 0.0;
+
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -318,7 +394,9 @@ class _GastosScreenState extends State<GastosScreen> {
                         ),
                         const Spacer(),
                         Text(
-                          'R\$ ${(sector.value / 1000000000).toStringAsFixed(1)}B',
+                          sector.value > 0
+                              ? 'R\$ ${(sector.value / 1000000000).toStringAsFixed(1)}B'
+                              : 'Sem dados',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold,
@@ -343,6 +421,15 @@ class _GastosScreenState extends State<GastosScreen> {
   }
 
   Widget _buildPieChart() {
+    if (_spendingData!.sectors.isEmpty || _totalSpending == 0) {
+      return Center(
+        child: Text(
+          'Dados não disponíveis',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      );
+    }
+
     return PieChart(
       PieChartData(
         sections: _spendingData!.sectors.map((sector) {
@@ -350,7 +437,7 @@ class _GastosScreenState extends State<GastosScreen> {
           return PieChartSectionData(
             color: sector.color,
             value: sector.value,
-            title: '${percentage.toStringAsFixed(1)}%',
+            title: percentage >= 5 ? '${percentage.toStringAsFixed(1)}%' : '',
             radius: 80,
             titleStyle: const TextStyle(
               fontSize: 12,
@@ -366,13 +453,37 @@ class _GastosScreenState extends State<GastosScreen> {
   }
 
   Widget _buildBarChart() {
+    if (_spendingData!.sectors.isEmpty || _totalSpending == 0) {
+      return Center(
+        child: Text(
+          'Dados não disponíveis',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      );
+    }
+
+    final maxValue = _spendingData!.sectors
+        .map((s) => s.value / 1000000000)
+        .reduce((a, b) => a > b ? a : b);
+
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
-        maxY: _spendingData!.sectors
-            .map((s) => s.value / 1000000000)
-            .reduce((a, b) => a > b ? a : b) * 1.2,
-        barTouchData: BarTouchData(enabled: false),
+        maxY: maxValue * 1.1,
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final sector = _spendingData!.sectors[group.x.toInt()];
+              return BarTooltipItem(
+                '${sector.name}\nR\$ ${(sector.value / 1000000000).toStringAsFixed(1)}B',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
+        ),
         titlesData: FlTitlesData(
           show: true,
           bottomTitles: AxisTitles(
@@ -380,11 +491,15 @@ class _GastosScreenState extends State<GastosScreen> {
               showTitles: true,
               getTitlesWidget: (value, meta) {
                 if (value.toInt() < _spendingData!.sectors.length) {
+                  final sector = _spendingData!.sectors[value.toInt()];
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      _spendingData!.sectors[value.toInt()].name.substring(0, 3),
+                      sector.name.length > 8
+                          ? '${sector.name.substring(0, 8)}...'
+                          : sector.name,
                       style: const TextStyle(fontSize: 10),
+                      textAlign: TextAlign.center,
                     ),
                   );
                 }
@@ -395,17 +510,20 @@ class _GastosScreenState extends State<GastosScreen> {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 40,
               getTitlesWidget: (value, meta) {
                 return Text(
-                  '${value.toInt()}B',
+                  '${value.toStringAsFixed(0)}B',
                   style: const TextStyle(fontSize: 10),
                 );
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(show: false),
         barGroups: _spendingData!.sectors.asMap().entries.map((entry) {
@@ -415,7 +533,7 @@ class _GastosScreenState extends State<GastosScreen> {
               BarChartRodData(
                 toY: entry.value.value / 1000000000,
                 color: entry.value.color,
-                width: 20,
+                width: 30,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
                   topRight: Radius.circular(4),
