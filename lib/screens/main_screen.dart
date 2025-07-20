@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'gastos_screen.dart';
-import 'avaliacao_screen.dart';
-import 'configuracoes_screen.dart';
 import 'security_screen.dart';
-
-
+import 'configuracoes_screen.dart';
+import 'avaliacao_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,47 +18,45 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const GastosScreen(),
-    const SecurityScreen(),
-    const AvaliacaoScreen(),
+    const SegurancaScreen(),
     const ConfiguracoesScreen(),
+    const AvaliacaoScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Inicio',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance),
             label: 'Gastos',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.security_outlined),
-            selectedIcon: Icon(Icons.security),
-            label: 'Segurança',
+          BottomNavigationBarItem(
+            icon: Icon(Icons.security),
+            label: 'Seguranca',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.star_outline),
-            selectedIcon: Icon(Icons.star),
-            label: 'Avaliação',
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Config',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star),
+            label: 'Avaliar',
           ),
         ],
       ),

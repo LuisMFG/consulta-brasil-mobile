@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../services/api_service.dart';
-import '../services/government_apis.dart';
+import '../services/real_data_service.dart';
 import '../models/spending_model.dart';
 import '../widgets/filter_chip_widget.dart';
 
@@ -18,10 +17,8 @@ class _GastosScreenState extends State<GastosScreen> {
   SpendingModel? _spendingData;
   bool _isLoading = true;
   String? _errorMessage;
-  bool _usingRealData = false;
-  String? _apiKey;
 
-  final List<String> _years = ['2021', '2022', '2023', '2024', '2025', 'Todos'];
+  final List<String> _years = ['2021', '2022', '2023', '2024', '2025'];
 
   @override
   void initState() {
@@ -33,87 +30,21 @@ class _GastosScreenState extends State<GastosScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _usingRealData = false;
     });
 
     try {
-      SpendingModel data;
-
-      if (_apiKey != null && _apiKey!.isNotEmpty) {
-        try {
-          GovernmentApisService.setApiKey(_apiKey!);
-          data = await GovernmentApisService.getRealSpendingData(_selectedYear);
-          _usingRealData = true;
-        } catch (e) {
-          print('Falha ao usar dados reais: $e');
-          data = await ApiService.getSpendingData(_selectedYear);
-          _usingRealData = false;
-          _errorMessage = 'API indisponível';
-        }
-      } else {
-        data = await ApiService.getSpendingData(_selectedYear);
-        _usingRealData = false;
-      }
-
+      final data = await RealDataService.getGastosPublicos(_selectedYear);
       setState(() {
         _spendingData = data;
         _isLoading = false;
+        _errorMessage = 'Dados atualizados carregados';
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = e.toString();
-        _usingRealData = false;
-      });
-
-      final fallbackData = await ApiService.getSpendingData(_selectedYear);
-      setState(() {
-        _spendingData = fallbackData;
+        _errorMessage = 'Erro ao carregar dados: $e';
       });
     }
-  }
-
-  void _showApiKeyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Chave API Portal da Transparência'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Para usar dados reais, você precisa de uma chave API:'),
-            const SizedBox(height: 8),
-            const Text('1. Acesse: portaldatransparencia.gov.br'),
-            const Text('2. Vá em "API de dados" > "Cadastrar email"'),
-            const Text('3. Faça login com Gov.br'),
-            const Text('4. Cole a chave recebida por email:'),
-            const SizedBox(height: 16),
-            TextField(
-              onChanged: (value) => _apiKey = value,
-              decoration: const InputDecoration(
-                hintText: 'Cole sua chave API aqui',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _loadSpendingData();
-            },
-            child: const Text('Usar Dados Reais'),
-          ),
-        ],
-      ),
-    );
   }
 
   double get _totalSpending {
@@ -121,28 +52,67 @@ class _GastosScreenState extends State<GastosScreen> {
     return _spendingData!.sectors.fold(0, (sum, sector) => sum + sector.value);
   }
 
+  String _formatCurrency(double value) {
+    if (value >= 1000000000000) {
+      return 'R\$ ${(value / 1000000000000).toStringAsFixed(1)} trilhoes';
+    } else if (value >= 1000000000) {
+      return 'R\$ ${(value / 1000000000).toStringAsFixed(1)} bilhoes';
+    } else if (value >= 1000000) {
+      return 'R\$ ${(value / 1000000).toStringAsFixed(1)} milhoes';
+    } else {
+      return 'R\$ ${value.toStringAsFixed(2)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Gastos Públicos',
+          'Gastos Publicos',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.surface,
-        actions: [
-          IconButton(
-            icon: Icon(_usingRealData ? Icons.cloud_done : Icons.cloud_off),
-            onPressed: _showApiKeyDialog,
-            tooltip: _usingRealData ? 'Usando dados reais' : 'Configurar API real',
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Status dos dados
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: Colors.orange.withOpacity(0.3)
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage ?? 'Dados atualizados carregados',
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Filtros por ano
             Row(
               children: [
                 Icon(
@@ -170,7 +140,7 @@ class _GastosScreenState extends State<GastosScreen> {
                       label: year,
                       isSelected: _selectedYear == year,
                       onSelected: (selected) {
-                        if (selected) {
+                        if (selected && _selectedYear != year) {
                           setState(() {
                             _selectedYear = year;
                           });
@@ -185,234 +155,207 @@ class _GastosScreenState extends State<GastosScreen> {
 
             const SizedBox(height: 24),
 
-            if (_errorMessage != null) ...[
+            // Total de gastos
+            if (!_isLoading && _spendingData != null) ...[
               Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _usingRealData ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _usingRealData ? Colors.green.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(_usingRealData ? Icons.check_circle : Icons.warning,
-                        color: _usingRealData ? Colors.green : Colors.orange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _usingRealData
-                            ? 'Exibindo dados REAIS do Portal da Transparência'
-                            : 'Usando dados de demonstração. Toque no ícone ☁ para configurar API real.',
-                        style: TextStyle(color: _usingRealData ? Colors.green[800] : Colors.orange[800]),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ] else if (_usingRealData) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.verified, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Dados REAIS do Portal da Transparência - Ano $_selectedYear',
-                        style: TextStyle(
-                          color: Colors.green[800],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            if (_isLoading)
-              Center(
-                child: Column(
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Carregando dados de $_selectedYear...',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              )
-            else if (_spendingData != null) ...[
-              Container(
-                padding: const EdgeInsets.all(20),
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      Theme.of(context).colorScheme.surface,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.05),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  ),
                 ),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Total Gasto em $_selectedYear',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _chartType = 'pie';
-                                });
-                              },
-                              icon: Icon(
-                                Icons.pie_chart,
-                                color: _chartType == 'pie'
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _chartType = 'bar';
-                                });
-                              },
-                              icon: Icon(
-                                Icons.bar_chart,
-                                color: _chartType == 'bar'
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      'Total de Gastos em $_selectedYear',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'R\$ ${(_totalSpending / 1000000000).toStringAsFixed(1)} bilhões',
+                      _formatCurrency(_totalSpending),
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 300,
-                      child: _chartType == 'pie'
-                          ? _buildPieChart()
-                          : _buildBarChart(),
-                    ),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
+            ],
 
+            // Controles do gráfico
+            Row(
+              children: [
+                Icon(
+                  Icons.bar_chart,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Tipo de Grafico',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                FilterChipWidget(
+                  label: 'Pizza',
+                  isSelected: _chartType == 'pie',
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _chartType = 'pie';
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                FilterChipWidget(
+                  label: 'Barras',
+                  isSelected: _chartType == 'bar',
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _chartType = 'bar';
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Gráfico
+            if (_isLoading)
+              const Center(
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Carregando dados...'),
+                  ],
+                ),
+              )
+            else if (_spendingData != null && _spendingData!.sectors.isNotEmpty)
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _chartType == 'pie' ? _buildPieChart() : _buildBarChart(),
+                ),
+              )
+            else
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  ),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.info_outline, size: 48, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('Nenhum dado disponivel'),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 24),
+
+            // Legenda
+            if (_spendingData != null && _spendingData!.sectors.isNotEmpty) ...[
               Text(
-                'Detalhamento por Setor',
+                'Distribuicao por Setor',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              ...(_spendingData!.sectors.map((sector) {
+                final percentage = (_totalSpending > 0)
+                    ? (sector.value / _totalSpending * 100)
+                    : 0.0;
 
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                ),
-                itemCount: _spendingData!.sectors.length,
-                itemBuilder: (context, index) {
-                  final sector = _spendingData!.sectors[index];
-                  final percentage = _totalSpending > 0
-                      ? (sector.value / _totalSpending) * 100
-                      : 0.0;
-
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: sector.color,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: sector.color,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          sector.name,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sector.name,
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              _formatCurrency(sector.value),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        Text(
-                          sector.value > 0
-                              ? 'R\$ ${(sector.value / 1000000000).toStringAsFixed(1)}B'
-                              : 'Sem dados',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${percentage.toStringAsFixed(1)}%',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                      Text(
+                        '${percentage.toStringAsFixed(1)}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList()),
             ],
           ],
         ),
@@ -421,24 +364,22 @@ class _GastosScreenState extends State<GastosScreen> {
   }
 
   Widget _buildPieChart() {
-    if (_spendingData!.sectors.isEmpty || _totalSpending == 0) {
-      return Center(
-        child: Text(
-          'Dados não disponíveis',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      );
+    if (_spendingData == null || _spendingData!.sectors.isEmpty) {
+      return const Center(child: Text('Nenhum dado disponivel'));
     }
 
     return PieChart(
       PieChartData(
         sections: _spendingData!.sectors.map((sector) {
-          final percentage = (sector.value / _totalSpending) * 100;
+          final percentage = (_totalSpending > 0)
+              ? (sector.value / _totalSpending * 100)
+              : 0.0;
+
           return PieChartSectionData(
             color: sector.color,
             value: sector.value,
-            title: percentage >= 5 ? '${percentage.toStringAsFixed(1)}%' : '',
-            radius: 80,
+            title: '${percentage.toStringAsFixed(1)}%',
+            radius: 100,
             titleStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -446,25 +387,25 @@ class _GastosScreenState extends State<GastosScreen> {
             ),
           );
         }).toList(),
-        centerSpaceRadius: 40,
         sectionsSpace: 2,
+        centerSpaceRadius: 40,
+        pieTouchData: PieTouchData(
+          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+            // Adicionar interatividade se necessário
+          },
+        ),
       ),
     );
   }
 
   Widget _buildBarChart() {
-    if (_spendingData!.sectors.isEmpty || _totalSpending == 0) {
-      return Center(
-        child: Text(
-          'Dados não disponíveis',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      );
+    if (_spendingData == null || _spendingData!.sectors.isEmpty) {
+      return const Center(child: Text('Nenhum dado disponivel'));
     }
 
     final maxValue = _spendingData!.sectors
-        .map((s) => s.value / 1000000000)
-        .reduce((a, b) => a > b ? a : b);
+        .map((s) => s.value)
+        .reduce((a, b) => a > b ? a : b) / 1000000000;
 
     return BarChart(
       BarChartData(
@@ -475,7 +416,7 @@ class _GastosScreenState extends State<GastosScreen> {
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               final sector = _spendingData!.sectors[group.x.toInt()];
               return BarTooltipItem(
-                '${sector.name}\nR\$ ${(sector.value / 1000000000).toStringAsFixed(1)}B',
+                '${sector.name}\n${_formatCurrency(sector.value)}',
                 const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
