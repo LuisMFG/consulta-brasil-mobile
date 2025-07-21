@@ -237,7 +237,7 @@ class SecurityApiService {
     final mockData = {
       'victims': {
         'total': 45320,
-        'byState': {'SP': 12500, 'RJ': 8300, 'MG': 5200, 'BA': 4800, 'PR': 3900, 'RS': 3600, 'Outros': 7020},
+        'byState': {'SP': 12500, 'RJ': 7300, 'MG': 5200, 'BA': 4800, 'PR': 3900, 'RS': 3600, 'Outros': 7020},
         'byMonth': {'Jan': 3800, 'Fev': 3600, 'Mar': 4100, 'Abr': 3900, 'Mai': 4200, 'Jun': 3850, 'Jul': 4050, 'Ago': 3750, 'Set': 3950, 'Out': 4100, 'Nov': 3800, 'Dez': 3220},
       },
       'occurrences': {
