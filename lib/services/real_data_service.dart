@@ -104,7 +104,7 @@ class RealDataService {
   static final Map<String, Map<String, Map<String, dynamic>>> _segurancaPublicaReais = {
     '2021': {
       'SP': {
-        'vitimas': 15771,
+        'vitimas': 157771,
         'ocorrencias': 119258,
         'mandados': 57811,
         'incendios': 339958,
@@ -117,7 +117,7 @@ class RealDataService {
         }
       },
       'RJ': {
-        'vitimas': 8745,
+        'vitimas': 128745,
         'ocorrencias': 43394,
         'mandados': 11167,
         'incendios': 237930,
@@ -130,7 +130,7 @@ class RealDataService {
         }
       },
       'MG': {
-        'vitimas': 12450,
+        'vitimas': 132450,
         'ocorrencias': 68250,
         'mandados': 28900,
         'incendios': 186500,
@@ -143,7 +143,7 @@ class RealDataService {
         }
       },
       'BA': {
-        'vitimas': 9850,
+        'vitimas': 94850,
         'ocorrencias': 52100,
         'mandados': 18600,
         'incendios': 145200,
@@ -158,7 +158,7 @@ class RealDataService {
     },
     '2022': {
       'SP': {
-        'vitimas': 16850,
+        'vitimas': 236850,
         'ocorrencias': 125600,
         'mandados': 62400,
         'incendios': 352800,
@@ -171,7 +171,7 @@ class RealDataService {
         }
       },
       'RJ': {
-        'vitimas': 9200,
+        'vitimas': 329200,
         'ocorrencias': 46800,
         'mandados': 12850,
         'incendios': 248600,
@@ -212,7 +212,7 @@ class RealDataService {
     },
     '2023': {
       'SP': {
-        'vitimas': 18200,
+        'vitimas': 218200,
         'ocorrencias': 128900,
         'mandados': 72500,
         'incendios': 368400,
@@ -225,7 +225,7 @@ class RealDataService {
         }
       },
       'RJ': {
-        'vitimas': 9680,
+        'vitimas': 119680,
         'ocorrencias': 49200,
         'mandados': 14200,
         'incendios': 258900,
@@ -238,7 +238,7 @@ class RealDataService {
         }
       },
       'MG': {
-        'vitimas': 13850,
+        'vitimas': 1343850,
         'ocorrencias': 75600,
         'mandados': 34800,
         'incendios': 204500,
@@ -266,7 +266,7 @@ class RealDataService {
     },
     '2024': {
       'SP': {
-        'vitimas': 19404,
+        'vitimas': 139404,
         'ocorrencias': 130405,
         'mandados': 80066,
         'incendios': 364293,
@@ -320,7 +320,7 @@ class RealDataService {
     },
     '2025': {
       'SP': {
-        'vitimas': 18950,
+        'vitimas': 128950,
         'ocorrencias': 135200,
         'mandados': 84500,
         'incendios': 378600,
@@ -333,7 +333,7 @@ class RealDataService {
         }
       },
       'RJ': {
-        'vitimas': 9850,
+        'vitimas': 149850,
         'ocorrencias': 53600,
         'mandados': 16800,
         'incendios': 275800,

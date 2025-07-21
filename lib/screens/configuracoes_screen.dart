@@ -56,7 +56,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        authProvider.isAuthenticated ? 'Usuário Logado' : 'Visitante',
+                        authProvider.isAuthenticated ? 'Daniel_Vini' : 'Visitante',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
